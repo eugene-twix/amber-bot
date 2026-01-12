@@ -41,7 +41,7 @@ func (b *Bot) getUser(c tele.Context) *domain.User {
 func (b *Bot) requireOrganizer(c tele.Context) bool {
 	user := b.getUser(c)
 	if user == nil || !user.CanManage() {
-		c.Send("У вас нет прав для этой команды")
+		_ = c.Send("У вас нет прав для этой команды")
 		return false
 	}
 	return true
@@ -50,7 +50,7 @@ func (b *Bot) requireOrganizer(c tele.Context) bool {
 func (b *Bot) requireAdmin(c tele.Context) bool {
 	user := b.getUser(c)
 	if user == nil || !user.IsAdmin() {
-		c.Send("Только администратор может выполнить эту команду")
+		_ = c.Send("Только администратор может выполнить эту команду")
 		return false
 	}
 	return true
