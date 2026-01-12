@@ -18,7 +18,9 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	_ = godotenv.Load()
+	// Load public env first, then secrets (secrets override)
+	_ = godotenv.Load(".env")
+	_ = godotenv.Load(".secret.env")
 
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {

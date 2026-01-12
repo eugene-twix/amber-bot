@@ -58,27 +58,14 @@ func (b *Bot) registerHandlers() {
 	// Middleware
 	b.tg.Use(b.authMiddleware)
 
-	// Public commands
+	// Commands (only /start)
 	b.tg.Handle("/start", b.handleStart)
-	b.tg.Handle("/teams", b.handleTeams)
-	b.tg.Handle("/team", b.handleTeam)
-	b.tg.Handle("/rating", b.handleRating)
-	b.tg.Handle("/cancel", b.handleCancel)
 
-	// Organizer commands
-	b.tg.Handle("/newteam", b.handleNewTeam)
-	b.tg.Handle("/addmember", b.handleAddMember)
-	b.tg.Handle("/newtournament", b.handleNewTournament)
-	b.tg.Handle("/result", b.handleResult)
-
-	// Admin commands
-	b.tg.Handle("/grant", b.handleGrant)
-
-	// Callbacks
-	b.tg.Handle(tele.OnCallback, b.handleCallback)
-
-	// Text messages (for FSM)
+	// Text messages (for buttons and FSM)
 	b.tg.Handle(tele.OnText, b.handleText)
+
+	// Callbacks (inline buttons)
+	b.tg.Handle(tele.OnCallback, b.handleCallback)
 }
 
 func (b *Bot) Start() {

@@ -11,6 +11,7 @@ type UserRepository interface {
 	GetOrCreate(ctx context.Context, telegramID int64, username string) (*domain.User, error)
 	GetByTelegramID(ctx context.Context, telegramID int64) (*domain.User, error)
 	UpdateRole(ctx context.Context, telegramID int64, role domain.Role) error
+	List(ctx context.Context) ([]*domain.User, error)
 }
 
 type TeamRepository interface {

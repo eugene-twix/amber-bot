@@ -50,3 +50,12 @@ func (r *UserRepo) UpdateRole(ctx context.Context, telegramID int64, role domain
 		Exec(ctx)
 	return err
 }
+
+func (r *UserRepo) List(ctx context.Context) ([]*domain.User, error) {
+	var users []*domain.User
+	err := r.db.NewSelect().
+		Model(&users).
+		Order("created_at DESC").
+		Scan(ctx)
+	return users, err
+}

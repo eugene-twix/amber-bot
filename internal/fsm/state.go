@@ -7,7 +7,10 @@ const (
 	StateNone State = ""
 
 	// NewTeam flow
-	StateNewTeamName State = "new_team:name"
+	StateNewTeamName       State = "new_team:name"
+	StateNewTeamAddMembers State = "new_team:add_members" // после создания - добавить участников?
+	StateNewTeamMoreMember State = "new_team:more_member" // ещё участника?
+	StateNewTeamAddResult  State = "new_team:add_result"  // записать результат?
 
 	// AddMember flow
 	StateAddMemberTeam State = "add_member:team"

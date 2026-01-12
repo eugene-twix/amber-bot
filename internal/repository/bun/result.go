@@ -18,7 +18,14 @@ func NewResultRepo(db *bun.DB) *ResultRepo {
 }
 
 func (r *ResultRepo) Create(ctx context.Context, res *domain.Result) error {
-	_, err := r.db.NewInsert().Model(res).Returning("*").Exec(ctx)
+	_, err := r.db.NewInsert().
+		Model(res).
+		On("CONFLICT (tournament_id, team_id) DO UPDATE").
+		Set("place = EXCLUDED.place").
+		Set("recorded_by = EXCLUDED.recorded_by").
+		Set("recorded_at = CURRENT_TIMESTAMP").
+		Returning("*").
+		Exec(ctx)
 	return err
 }
 
