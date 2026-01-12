@@ -6,9 +6,6 @@ up:
 down:
 	docker-compose down
 
-migrate:
-	go run cmd/migrate/main.go up
-
 run: secrets-decrypt
 	go run cmd/bot/main.go
 
