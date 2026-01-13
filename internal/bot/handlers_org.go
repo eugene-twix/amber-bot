@@ -881,6 +881,12 @@ func (b *Bot) handleGrantRoleCallback(c tele.Context, payload string) error {
 	}
 
 	_ = b.fsm.Clear(ctx, c.Sender().ID)
+
+	// Edit the message to remove buttons and show result
+	if err := c.Edit(fmt.Sprintf("✅ Роль '%s' назначена пользователю %d", role, userID)); err != nil {
+		log.Printf("WARN: failed to edit message: %v", err)
+	}
+
 	user := b.getUser(c)
-	return c.Send(fmt.Sprintf("✅ Роль '%s' назначена пользователю %d", role, userID), MainMenu(user.Role))
+	return c.Send("Готово!", MainMenu(user.Role))
 }

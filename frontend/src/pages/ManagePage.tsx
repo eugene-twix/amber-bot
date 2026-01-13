@@ -337,6 +337,7 @@ export function ManagePage() {
                         </Badge>
                       </div>
                       <Select
+                        key={`${u.telegram_id}-${u.role}`}
                         value={u.role}
                         onValueChange={async (newRole) => {
                           try {
