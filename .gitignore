@@ -6,4 +6,13 @@
 # Secrets (age encryption)
 .secret.env
 .age-key.txt
+
+# AI instruction files
 MINI_APP_TZ.md
+AGENTS.md
+GEMINI.md
+
+# Auto-generated README files
+cmd/README.md
+internal/**/README.md
+internal/README.md
