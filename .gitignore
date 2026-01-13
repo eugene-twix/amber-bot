@@ -6,3 +6,4 @@
 # Secrets (age encryption)
 .secret.env
 .age-key.txt
+MINI_APP_TZ.md

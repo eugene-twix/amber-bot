@@ -50,6 +50,21 @@ func (c *Cache) Delete(ctx context.Context, keys ...string) error {
 	return c.client.Del(ctx, keys...).Err()
 }
 
+// SetNX sets key only if it doesn't exist (for replay protection)
+func (c *Cache) SetNX(ctx context.Context, key string, value string, ttl time.Duration) (bool, error) {
+	return c.client.SetNX(ctx, key, value, ttl).Result()
+}
+
+// Incr increments key value (for rate limiting)
+func (c *Cache) Incr(ctx context.Context, key string) (int64, error) {
+	return c.client.Incr(ctx, key).Result()
+}
+
+// Expire sets TTL on key
+func (c *Cache) Expire(ctx context.Context, key string, ttl time.Duration) error {
+	return c.client.Expire(ctx, key, ttl).Err()
+}
+
 func (c *Cache) Close() error {
 	return c.client.Close()
 }
