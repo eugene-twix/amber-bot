@@ -1,4 +1,4 @@
-.PHONY: up down migrate run test secrets-keygen secrets-encrypt secrets-decrypt
+.PHONY: up down migrate run run-api build-frontend test secrets-keygen secrets-encrypt secrets-decrypt
 
 up:
 	docker-compose up -d
@@ -8,6 +8,12 @@ down:
 
 run: secrets-decrypt
 	go run cmd/bot/main.go
+
+run-api: secrets-decrypt
+	go run cmd/api/main.go
+
+build-frontend:
+	cd frontend && npm install && npm run build
 
 test:
 	go test -v ./...

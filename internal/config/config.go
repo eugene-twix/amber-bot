@@ -15,6 +15,10 @@ type Config struct {
 	RedisURL      string  `env:"REDIS_URL,required"`
 	AdminIDsRaw   string  `env:"ADMIN_IDS" envDefault:""`
 	AdminIDs      []int64 `env:"-"`
+
+	// API server config
+	APIPort      int    `env:"API_PORT" envDefault:"8080"`
+	FrontendPath string `env:"FRONTEND_PATH" envDefault:"./frontend/dist"`
 }
 
 func Load() (*Config, error) {
