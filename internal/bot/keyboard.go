@@ -95,39 +95,10 @@ func PaginatedKeyboard(action string, items []PaginatedItem, page int) *tele.Rep
 	return &tele.ReplyMarkup{InlineKeyboard: rows}
 }
 
-// MainMenu returns Reply Keyboard based on user role
+// MainMenu returns RemoveKeyboard - кнопки больше не нужны, есть Mini App
 func MainMenu(role domain.Role) *tele.ReplyMarkup {
-	menu := &tele.ReplyMarkup{ResizeKeyboard: true}
-
-	btnTeams := menu.Text(BtnTeams)
-	btnRating := menu.Text(BtnRating)
-	btnNewTeam := menu.Text(BtnNewTeam)
-	btnAddMember := menu.Text(BtnAddMember)
-	btnNewTournament := menu.Text(BtnNewTournament)
-	btnResult := menu.Text(BtnResult)
-	btnGrant := menu.Text(BtnGrant)
-
-	switch role {
-	case domain.RoleViewer:
-		menu.Reply(
-			menu.Row(btnTeams, btnRating),
-		)
-	case domain.RoleOrganizer:
-		menu.Reply(
-			menu.Row(btnTeams, btnRating),
-			menu.Row(btnNewTeam, btnAddMember),
-			menu.Row(btnNewTournament, btnResult),
-		)
-	case domain.RoleAdmin:
-		menu.Reply(
-			menu.Row(btnTeams, btnRating),
-			menu.Row(btnNewTeam, btnAddMember),
-			menu.Row(btnNewTournament, btnResult),
-			menu.Row(btnGrant),
-		)
-	}
-
-	return menu
+	_ = role // unused, kept for backwards compatibility
+	return &tele.ReplyMarkup{RemoveKeyboard: true}
 }
 
 // CancelMenu returns Reply Keyboard with cancel button (for FSM dialogs)

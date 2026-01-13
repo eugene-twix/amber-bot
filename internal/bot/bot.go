@@ -24,6 +24,7 @@ type Bot struct {
 	memberRepo *bunrepo.MemberRepo
 	tournRepo  *bunrepo.TournamentRepo
 	resultRepo *bunrepo.ResultRepo
+	miniAppURL string
 }
 
 func New(cfg *config.Config, db *bun.DB, cache *cache.Cache) (*Bot, error) {
@@ -48,6 +49,7 @@ func New(cfg *config.Config, db *bun.DB, cache *cache.Cache) (*Bot, error) {
 		memberRepo: bunrepo.NewMemberRepo(db),
 		tournRepo:  bunrepo.NewTournamentRepo(db),
 		resultRepo: bunrepo.NewResultRepo(db),
+		miniAppURL: cfg.MiniAppURL,
 	}
 
 	b.registerHandlers()

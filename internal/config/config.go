@@ -19,6 +19,13 @@ type Config struct {
 	// API server config
 	APIPort      int    `env:"API_PORT" envDefault:"8080"`
 	FrontendPath string `env:"FRONTEND_PATH" envDefault:"./frontend/dist"`
+
+	// Mini App URL (for bot button)
+	MiniAppURL string `env:"MINI_APP_URL" envDefault:""`
+
+	// Dev mode (bypasses Telegram auth)
+	DevMode      bool  `env:"DEV_MODE" envDefault:"false"`
+	DevUserID    int64 `env:"DEV_USER_ID" envDefault:"123456789"`
 }
 
 func Load() (*Config, error) {

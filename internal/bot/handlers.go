@@ -14,15 +14,28 @@ import (
 
 func (b *Bot) handleStart(c tele.Context) error {
 	user := b.getUser(c)
+
+	// Сначала убираем Reply Keyboard (отдельным сообщением)
+	_ = c.Send("👋", &tele.ReplyMarkup{RemoveKeyboard: true})
+
 	msg := fmt.Sprintf(`Привет, %s!
 
-Я бот для учёта результатов квизов и настолок.
+Это бот для учёта результатов квизов и настолок.
 
-Ваша роль: %s
+Ваша роль: %s`, c.Sender().FirstName, user.Role)
 
-Используйте кнопки внизу для работы с ботом.`, c.Sender().FirstName, user.Role)
+	// Если Mini App URL настроен — добавляем inline кнопку
+	if b.miniAppURL != "" {
+		msg += "\n\nНажми кнопку ниже, чтобы открыть приложение 👇"
 
-	return c.Send(msg, MainMenu(user.Role))
+		kb := &tele.ReplyMarkup{}
+		webAppBtn := kb.WebApp("🚀 Открыть приложение", &tele.WebApp{URL: b.miniAppURL})
+		kb.Inline(kb.Row(webAppBtn))
+
+		return c.Send(msg, kb)
+	}
+
+	return c.Send(msg)
 }
 
 func (b *Bot) handleText(c tele.Context) error {
