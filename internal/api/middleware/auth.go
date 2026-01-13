@@ -2,12 +2,14 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"sort"
@@ -25,6 +27,9 @@ const (
 	// TTL for auth_date validation
 	ReadTTL  = 1 * time.Hour
 	WriteTTL = 10 * time.Minute
+
+	// TTL for replay detection (short, just to prevent double-clicks)
+	ReplayTTL = 1 * time.Second
 
 	// Context keys
 	ContextKeyUser     = "user"
@@ -144,7 +149,17 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 
 		// Check replay attack for mutations
 		if c.Request.Method != http.MethodGet && initData.QueryID != "" {
-			if err := m.checkReplay(c.Request.Context(), initData.QueryID, c.Request.Method, c.Request.URL.Path); err != nil {
+			// Read body and compute hash for replay key
+			bodyBytes, _ := io.ReadAll(c.Request.Body)
+			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // Restore body for handlers
+
+			bodyHash := ""
+			if len(bodyBytes) > 0 {
+				h := sha256.Sum256(bodyBytes)
+				bodyHash = hex.EncodeToString(h[:8]) // First 8 bytes is enough
+			}
+
+			if err := m.checkReplay(c.Request.Context(), initData.QueryID, c.Request.Method, c.Request.URL.Path, bodyHash); err != nil {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "replay_detected"})
 				return
 			}
@@ -358,12 +373,12 @@ func (m *AuthMiddleware) validateHash(raw, hash string) bool {
 }
 
 // checkReplay checks if exact request was already made (replay attack)
-// Uses query_id + method + path to allow multiple different requests in same session
-func (m *AuthMiddleware) checkReplay(ctx context.Context, queryID, method, path string) error {
-	key := fmt.Sprintf("replay:%s:%s:%s", queryID, method, path)
+// Uses query_id + method + path + bodyHash to allow different requests in same session
+func (m *AuthMiddleware) checkReplay(ctx context.Context, queryID, method, path, bodyHash string) error {
+	key := fmt.Sprintf("replay:%s:%s:%s:%s", queryID, method, path, bodyHash)
 
 	// Try to set with NX (only if not exists)
-	set, err := m.cache.SetNX(ctx, key, "1", WriteTTL)
+	set, err := m.cache.SetNX(ctx, key, "1", ReplayTTL)
 	if err != nil {
 		// If Redis error, allow request (fail open)
 		return nil
