@@ -21,14 +21,26 @@ func (r *MemberRepo) Create(ctx context.Context, member *domain.Member) error {
 	return err
 }
 
+func (r *MemberRepo) GetByID(ctx context.Context, id int64) (*domain.Member, error) {
+	member := new(domain.Member)
+	err := r.db.NewSelect().Model(member).Where("id = ?", id).Where("deleted_at IS NULL").Scan(ctx)
+	return member, err
+}
+
 func (r *MemberRepo) GetByTeamID(ctx context.Context, teamID int64) ([]*domain.Member, error) {
 	var members []*domain.Member
 	err := r.db.NewSelect().
 		Model(&members).
 		Where("team_id = ?", teamID).
+		Where("deleted_at IS NULL").
 		Order("name ASC").
 		Scan(ctx)
 	return members, err
+}
+
+func (r *MemberRepo) Update(ctx context.Context, member *domain.Member) error {
+	_, err := r.db.NewUpdate().Model(member).WherePK().Returning("*").Exec(ctx)
+	return err
 }
 
 func (r *MemberRepo) Delete(ctx context.Context, id int64) error {

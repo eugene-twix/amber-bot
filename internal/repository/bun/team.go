@@ -23,20 +23,25 @@ func (r *TeamRepo) Create(ctx context.Context, team *domain.Team) error {
 
 func (r *TeamRepo) GetByID(ctx context.Context, id int64) (*domain.Team, error) {
 	team := new(domain.Team)
-	err := r.db.NewSelect().Model(team).Where("id = ?", id).Scan(ctx)
+	err := r.db.NewSelect().Model(team).Where("id = ?", id).Where("deleted_at IS NULL").Scan(ctx)
 	return team, err
 }
 
 func (r *TeamRepo) GetByName(ctx context.Context, name string) (*domain.Team, error) {
 	team := new(domain.Team)
-	err := r.db.NewSelect().Model(team).Where("name = ?", name).Scan(ctx)
+	err := r.db.NewSelect().Model(team).Where("name = ?", name).Where("deleted_at IS NULL").Scan(ctx)
 	return team, err
 }
 
 func (r *TeamRepo) List(ctx context.Context) ([]*domain.Team, error) {
 	var teams []*domain.Team
-	err := r.db.NewSelect().Model(&teams).Order("name ASC").Scan(ctx)
+	err := r.db.NewSelect().Model(&teams).Where("deleted_at IS NULL").Order("name ASC").Scan(ctx)
 	return teams, err
+}
+
+func (r *TeamRepo) Update(ctx context.Context, team *domain.Team) error {
+	_, err := r.db.NewUpdate().Model(team).WherePK().Returning("*").Exec(ctx)
+	return err
 }
 
 func (r *TeamRepo) Delete(ctx context.Context, id int64) error {
