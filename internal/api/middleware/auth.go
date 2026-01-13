@@ -62,6 +62,8 @@ type AuthMiddleware struct {
 	userRepo  repository.UserRepository
 	cache     *cache.Cache
 	secretKey []byte
+	devMode   bool
+	devUserID int64
 }
 
 func NewAuthMiddleware(botToken string, userRepo repository.UserRepository, cache *cache.Cache) *AuthMiddleware {
@@ -75,12 +77,32 @@ func NewAuthMiddleware(botToken string, userRepo repository.UserRepository, cach
 		userRepo:  userRepo,
 		cache:     cache,
 		secretKey: secretKey,
+		devMode:   false,
+		devUserID: 0,
 	}
+}
+
+// EnableDevMode enables development mode with a mock user
+func (m *AuthMiddleware) EnableDevMode(userID int64) {
+	m.devMode = true
+	m.devUserID = userID
 }
 
 // Authenticate validates Telegram initData and loads user
 func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Dev mode: bypass authentication
+		if m.devMode {
+			user, err := m.userRepo.GetOrCreate(c.Request.Context(), m.devUserID, "dev_user")
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
+				return
+			}
+			c.Set(ContextKeyUser, user)
+			c.Next()
+			return
+		}
+
 		// Get Authorization header: "TMA <initData>"
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {

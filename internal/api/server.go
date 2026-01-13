@@ -17,6 +17,8 @@ type Config struct {
 	Port         int
 	BotToken     string
 	FrontendPath string // Path to frontend/dist
+	DevMode      bool
+	DevUserID    int64
 }
 
 type Server struct {
@@ -40,6 +42,9 @@ func NewServer(cfg Config, repos *Repositories, cache *cache.Cache) *Server {
 
 	// Auth middleware
 	authMW := middleware.NewAuthMiddleware(cfg.BotToken, repos.User, cache)
+	if cfg.DevMode {
+		authMW.EnableDevMode(cfg.DevUserID)
+	}
 	rateLimitMW := middleware.NewRateLimitMiddleware(cache)
 
 	s := &Server{
@@ -84,8 +89,8 @@ func (s *Server) setupRoutes(authMW *middleware.AuthMiddleware, rateLimitMW *mid
 
 		// Members
 		private.POST("/teams/:id/members", rateLimitMW.LimitWrite(), s.handler.CreateMember)
-		private.PATCH("/teams/:team_id/members/:member_id", rateLimitMW.LimitWrite(), s.handler.UpdateMember)
-		private.DELETE("/teams/:team_id/members/:member_id", rateLimitMW.LimitWrite(), s.handler.DeleteMember)
+		private.PATCH("/teams/:id/members/:member_id", rateLimitMW.LimitWrite(), s.handler.UpdateMember)
+		private.DELETE("/teams/:id/members/:member_id", rateLimitMW.LimitWrite(), s.handler.DeleteMember)
 
 		// Tournaments
 		private.POST("/tournaments", rateLimitMW.LimitWrite(), s.handler.CreateTournament)

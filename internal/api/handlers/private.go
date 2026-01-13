@@ -84,7 +84,14 @@ func (h *Handler) UpdateTeam(c *gin.Context) {
 	team.UpdatedBy = &user.TelegramID
 	team.Version = req.Version + 1
 
-	// TODO: Implement Update method in repository
+	if err := h.teamRepo.Update(c.Request.Context(), team); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
+		return
+	}
+
+	// Invalidate cache
+	h.cache.Delete(c.Request.Context(), "teams:list")
+
 	c.JSON(http.StatusOK, gin.H{
 		"id":         team.ID,
 		"name":       team.Name,
@@ -128,6 +135,10 @@ func (h *Handler) DeleteTeam(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 		return
 	}
+
+	// Invalidate cache
+	h.cache.Delete(c.Request.Context(), "teams:list")
+	h.cache.Delete(c.Request.Context(), ratingCacheKey)
 
 	c.JSON(http.StatusOK, gin.H{"deleted": true})
 }
@@ -200,11 +211,29 @@ func (h *Handler) UpdateMember(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement GetByID and Update for member
+	member, err := h.memberRepo.GetByID(c.Request.Context(), memberID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "member_not_found"})
+		return
+	}
+
+	if member.Version != req.Version {
+		c.JSON(http.StatusConflict, gin.H{"error": "version_conflict", "current_version": member.Version})
+		return
+	}
+
+	member.Name = req.Name
+	member.Version = req.Version + 1
+
+	if err := h.memberRepo.Update(c.Request.Context(), member); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"id":      memberID,
-		"name":    req.Name,
-		"version": req.Version + 1,
+		"id":      member.ID,
+		"name":    member.Name,
+		"version": member.Version,
 	})
 }
 
@@ -219,6 +248,17 @@ func (h *Handler) DeleteMember(c *gin.Context) {
 	var req DeleteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "validation_error", "details": err.Error()})
+		return
+	}
+
+	member, err := h.memberRepo.GetByID(c.Request.Context(), memberID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "member_not_found"})
+		return
+	}
+
+	if member.Version != req.Version {
+		c.JSON(http.StatusConflict, gin.H{"error": "version_conflict", "current_version": member.Version})
 		return
 	}
 
@@ -307,11 +347,36 @@ func (h *Handler) UpdateTournament(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement Update
+	date, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_date_format"})
+		return
+	}
+
+	user := middleware.GetUser(c)
+	now := time.Now()
+
+	tournament.Name = req.Name
+	tournament.Date = date
+	tournament.Location = req.Location
+	tournament.UpdatedAt = &now
+	tournament.UpdatedBy = &user.TelegramID
+	tournament.Version = req.Version + 1
+
+	if err := h.tournamentRepo.Update(c.Request.Context(), tournament); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
+		return
+	}
+
+	// Invalidate cache
+	h.cache.Delete(c.Request.Context(), "tournaments:list")
+
 	c.JSON(http.StatusOK, gin.H{
-		"id":      tournament.ID,
-		"name":    req.Name,
-		"version": req.Version + 1,
+		"id":       tournament.ID,
+		"name":     tournament.Name,
+		"date":     tournament.Date.Format("2006-01-02"),
+		"location": tournament.Location,
+		"version":  tournament.Version,
 	})
 }
 
@@ -340,7 +405,14 @@ func (h *Handler) DeleteTournament(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement Delete in tournament repo
+	if err := h.tournamentRepo.Delete(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
+		return
+	}
+
+	// Invalidate cache
+	h.cache.Delete(c.Request.Context(), "tournaments:list")
+
 	c.JSON(http.StatusOK, gin.H{"deleted": true})
 }
 
@@ -425,14 +497,32 @@ func (h *Handler) UpdateResult(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement GetByID and Update for result
+	result, err := h.resultRepo.GetByID(c.Request.Context(), resultID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "result_not_found"})
+		return
+	}
+
+	if result.Version != req.Version {
+		c.JSON(http.StatusConflict, gin.H{"error": "version_conflict", "current_version": result.Version})
+		return
+	}
+
+	result.Place = req.Place
+	result.Version = req.Version + 1
+
+	if err := h.resultRepo.Update(c.Request.Context(), result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
+		return
+	}
+
 	// Invalidate rating cache
 	_ = h.cache.Delete(c.Request.Context(), ratingCacheKey)
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":      resultID,
-		"place":   req.Place,
-		"version": req.Version + 1,
+		"id":      result.ID,
+		"place":   result.Place,
+		"version": result.Version,
 	})
 }
 
@@ -450,11 +540,27 @@ func (h *Handler) DeleteResult(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement GetByID for version check and Delete
+	result, err := h.resultRepo.GetByID(c.Request.Context(), resultID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "result_not_found"})
+		return
+	}
+
+	if result.Version != req.Version {
+		c.JSON(http.StatusConflict, gin.H{"error": "version_conflict", "current_version": result.Version})
+		return
+	}
+
+	// Delete result and shift places in a transaction
+	if err := h.resultRepo.DeleteWithShift(c.Request.Context(), resultID, result.TournamentID, result.Place); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
+		return
+	}
+
 	// Invalidate rating cache
 	_ = h.cache.Delete(c.Request.Context(), ratingCacheKey)
 
-	c.JSON(http.StatusOK, gin.H{"deleted": true, "id": resultID})
+	c.JSON(http.StatusOK, gin.H{"deleted": true})
 }
 
 // === USERS (Admin only) ===

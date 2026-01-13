@@ -49,7 +49,13 @@ func main() {
 		Port:         cfg.APIPort,
 		BotToken:     cfg.TelegramToken,
 		FrontendPath: cfg.FrontendPath,
+		DevMode:      cfg.DevMode,
+		DevUserID:    cfg.DevUserID,
 	}, repos, c)
+
+	if cfg.DevMode {
+		log.Printf("WARNING: Running in DEV MODE with user ID %d", cfg.DevUserID)
+	}
 
 	// Graceful shutdown
 	go func() {

@@ -1,4 +1,4 @@
-.PHONY: up down migrate run run-api build-frontend test secrets-keygen secrets-encrypt secrets-decrypt
+.PHONY: up down migrate run run-api run-api-dev run-all build build-frontend frontend-dev frontend-install test secrets-keygen secrets-encrypt secrets-decrypt
 
 up:
 	docker-compose up -d
@@ -12,8 +12,22 @@ run: secrets-decrypt
 run-api: secrets-decrypt
 	go run cmd/api/main.go
 
+run-api-dev: secrets-decrypt
+	DEV_MODE=true DEV_USER_ID=123456789 go run cmd/api/main.go
+
+# Build everything
+build: build-frontend
+	go build -o bin/api cmd/api/main.go
+	go build -o bin/bot cmd/bot/main.go
+
 build-frontend:
 	cd frontend && npm install && npm run build
+
+frontend-dev:
+	cd frontend && npm run dev
+
+frontend-install:
+	cd frontend && npm install
 
 test:
 	go test -v ./...
