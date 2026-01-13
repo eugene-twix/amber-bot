@@ -1,67 +1,33 @@
 # Amber Bot
 
-Amber Bot — это Telegram-бот, предназначенный для учета и управления командами, участниками и результатами в рамках квизов, настольных игр или любых других турниров. Он помогает организаторам легко создавать события и команды, а участникам — отслеживать свои достижения.
+Telegram Mini App + бот для учёта команд, участников и результатов квизов и настольных игр.
 
 ## Стек технологий
 
-- **Язык:** Go
+- **Backend:** Go, Gin, Bun ORM
+- **Frontend:** React, TypeScript, Vite, shadcn/ui, TanStack Query
 - **База данных:** PostgreSQL
-- **Кеш:** Dragonfly
-- **ORM:** Bun
+- **Кеш:** Dragonfly (Redis-совместимый)
 - **Развертывание:** Docker
 
 ---
 
 ## Возможности
 
-Бот поддерживает три уровня доступа: `Viewer` (Пользователь), `Organizer` (Организатор) и `Admin` (Администратор).
+### Mini App (основной интерфейс)
 
-### Для всех пользователей
-- **Просмотр команд**: Возможность просматривать список всех созданных команд и их подробную информацию (состав, история игр).
-- **Просмотр рейтинга**: Доступ к общему рейтингу команд, основанному на их результатах в турнирах.
+- **Команды**: Просмотр списка команд, поиск, детали команды с участниками и результатами
+- **Рейтинг**: Таблица рейтинга команд с сортировкой по победам и среднему месту
+- **Турниры**: Список турниров и их результаты
+- **Управление** (organizer/admin): Создание команд, турниров, участников, запись результатов
 
-### Для Организаторов
-- **Создание команд**: Управление командами, включая их создание и добавление участников.
-- **Создание турниров**: Быстрое создание новых турнирных событий с указанием названия, даты и места проведения.
-- **Запись результатов**: Внесение результатов команд в конкретных турнирах.
+### Роли пользователей
 
-### Для Администраторов
-- **Управление ролями**: Назначение ролей (`Viewer`, `Organizer`, `Admin`) другим пользователям.
-
----
-
-## Схема БД и связи
-
-**Таблицы:**
-- `users` — пользователи Telegram (ключ: `telegram_id`).
-- `teams` — команды (`id`, `name`, `created_by`).
-- `members` — участники команд (`team_id`, `joined_at`).
-- `tournaments` — турниры (`name`, `date`, `location`, `created_by`).
-- `results` — результаты (`team_id`, `tournament_id`, `place`, `recorded_by`, `recorded_at`).
-
-**Связи (стрелочная схема):**
-
-```
-users.telegram_id
-  ↑ (логическая связь, без FK)
-teams.created_by
-  ↑ (логическая связь, без FK)
-tournaments.created_by
-  ↑ (логическая связь, без FK)
-results.recorded_by
-
-teams.id
-  ↑ (FK, ON DELETE CASCADE)
-members.team_id
-
-teams.id
-  ↑ (FK, ON DELETE CASCADE)
-results.team_id
-
-tournaments.id
-  ↑ (FK, ON DELETE CASCADE)
-results.tournament_id
-```
+| Роль | Права |
+|------|-------|
+| `viewer` | Просмотр команд, рейтинга, турниров |
+| `organizer` | + создание команд, турниров, запись результатов |
+| `admin` | + управление ролями пользователей |
 
 ---
 
@@ -70,20 +36,25 @@ results.tournament_id
 ```
 .
 ├── cmd/
-│   └── bot/
-│       └── main.go
+│   ├── api/main.go      # HTTP API сервер
+│   └── bot/main.go      # Telegram бот
+├── frontend/            # React Mini App
+│   ├── src/
+│   │   ├── components/  # UI компоненты
+│   │   ├── pages/       # Страницы
+│   │   ├── hooks/       # React hooks
+│   │   └── services/    # API клиент
+│   └── ...
 ├── internal/
-│   ├── bot/
-│   ├── cache/
-│   ├── config/
-│   ├── domain/
-│   ├── fsm/
-│   ├── migrations/
-│   └── repository/
-│       └── bun/
+│   ├── api/             # REST API (Gin)
+│   ├── bot/             # Telegram бот (telebot)
+│   ├── cache/           # Redis клиент
+│   ├── config/          # Конфигурация
+│   ├── domain/          # Доменные сущности
+│   ├── fsm/             # FSM для диалогов бота
+│   ├── migrations/      # SQL миграции
+│   └── repository/      # Слой данных (Bun ORM)
 ├── docker-compose.yml
-├── go.mod
-├── go.sum
 ├── Makefile
 └── README.md
 ```
@@ -92,92 +63,129 @@ results.tournament_id
 
 ## Установка и запуск
 
-Для запуска проекта локально следуйте этим шагам.
-
 ### 1. Предварительные требования
 
-Убедитесь, что у вас установлены:
-- `git`
-- `go` (версия 1.24+)
-- `docker`
-- `docker-compose`
+- `git`, `go` (1.21+), `node` (20+), `docker`, `docker-compose`
 - `age` (для шифрования секретов)
 
-### 2. Клонирование репозитория
+### 2. Клонирование
+
 ```bash
 git clone <repository-url>
 cd amber-bot
 ```
 
-### 3. Запуск зависимостей
-Запустите базу данных и кеш с помощью Docker:
+### 3. Запуск инфраструктуры
+
 ```bash
-make up
+make up  # PostgreSQL + Dragonfly
 ```
-Эта команда запустит контейнеры с PostgreSQL и Dragonfly в фоновом режиме.
 
-### 4. Управление секретами
-Проект использует `age` для шифрования чувствительных данных, таких как токены.
+### 4. Настройка секретов
 
-**Если вы настраиваете проект впервые:**
-1. Сгенерируйте `age` ключ:
-   ```bash
-   make secrets-keygen
-   ```
-   Эта команда создаст файл `.age-key.txt`. **Не добавляйте этот файл в Git.**
-2. Скопируйте публичный ключ из вывода команды и добавьте его в файл `.age-recipients`.
+```bash
+# Сгенерировать age ключ
+make secrets-keygen
 
-**Работа с секретами:**
-1. Создайте или отредактируйте файл `.secret.env`. В нем хранятся переменные, которые не должны попасть в Git (например, `TELEGRAM_TOKEN`).
-   ```
-   TELEGRAM_TOKEN=12345:your-secret-token
-   ```
-2. Зашифруйте этот файл:
-   ```bash
-   make secrets-encrypt
-   ```
-   Эта команда создаст зашифрованный файл `.secret.enc.env`, который можно безопасно коммитить.
+# Создать .secret.env
+cp .secret.env.example .secret.env
+# Заполнить TELEGRAM_TOKEN, DATABASE_URL, ADMIN_IDS
 
-Для запуска приложения локально секреты нужно расшифровать. Команда `make run` делает это автоматически.
+# Зашифровать
+make secrets-encrypt
+```
 
-### 5. Конфигурация
-Создайте файл `.env` в корне проекта для несекретных настроек.
+### 5. Конфигурация (.env)
 
 ```env
-# URL для подключения к базе данных из docker-compose
-DATABASE_URL=postgres://amber:amber@localhost:5436/amber_bot?sslmode=disable
-
-# URL для подключения к кешу из docker-compose
+DATABASE_URL=postgres://amber:amber@localhost:5432/amber_bot?sslmode=disable
 REDIS_URL=redis://localhost:6379/0
+ADMIN_IDS=123456789
 
-# (Опционально) ID пользователей Telegram, которые получат права администратора при первом запуске
-ADMIN_IDS=12345678,87654321
+# Для Mini App
+API_PORT=8080
+MINI_APP_URL=https://your-domain.com
+
+# Dev режим (без Telegram auth)
+DEV_MODE=true
+DEV_USER_ID=123456789
 ```
 
-### 6. Миграции базы данных
-Миграции лежат в `internal/migrations/*.sql` и автоматически применяются при запуске бота (`make run`).
+### 6. Запуск
 
-### 7. Запуск бота
-Запустите приложение:
 ```bash
-make run
+# Backend (API сервер) — миграции применяются автоматически
+go run cmd/api/main.go
+
+# Frontend (dev)
+cd frontend && npm install && npm run dev
+
+# Telegram бот (опционально)
+go run cmd/bot/main.go
 ```
-Эта команда сначала расшифрует секреты из `.secret.enc.env` в `.secret.env`, а затем запустит бота.
+
+Или через Makefile:
+
+```bash
+make run-api      # API сервер
+make run-bot      # Telegram бот
+make run-frontend # Frontend dev server
+```
+
+---
+
+## API
+
+### Публичные endpoints (`/api/v1/public/*`)
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/me` | Текущий пользователь |
+| GET | `/teams` | Список команд |
+| GET | `/teams/:id` | Детали команды |
+| GET | `/teams/:id/members` | Участники команды |
+| GET | `/teams/:id/results` | Результаты команды |
+| GET | `/tournaments` | Список турниров |
+| GET | `/tournaments/:id` | Детали турнира |
+| GET | `/tournaments/:id/results` | Результаты турнира |
+| GET | `/rating` | Рейтинг команд |
+
+### Приватные endpoints (`/api/v1/private/*`)
+
+Требуют роль `organizer` или `admin`.
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| POST | `/teams` | Создать команду |
+| PATCH | `/teams/:id` | Обновить команду |
+| DELETE | `/teams/:id` | Удалить команду |
+| POST | `/teams/:id/members` | Добавить участника |
+| POST | `/tournaments` | Создать турнир |
+| POST | `/tournaments/:id/results` | Записать результат |
+| ... | ... | ... |
 
 ---
 
 ## Разработка
 
-Для удобства разработки в `Makefile` есть несколько полезных команд:
+```bash
+make up           # Запустить Docker (DB + Cache)
+make down         # Остановить Docker
+make run-api      # Запустить API сервер
+make run-bot      # Запустить бота
+make test         # Запустить тесты
+make build        # Собрать бинарники
+```
 
-- `make up`: Запустить Docker-контейнеры (PostgreSQL, Dragonfly).
-- `make down`: Остановить Docker-контейнеры.
-- `make run`: Запустить бота с автоматической расшифровкой секретов.
-- `make test`: Запустить тесты.
-- `make migrate`: Применить миграции БД.
-- `make secrets-encrypt`: Зашифровать `.secret.env` в `.secret.enc.env`.
-- `make secrets-decrypt`: Расшифровать `.secret.enc.env` в `.secret.env`.
-- `make secrets-keygen`: Сгенерировать новый `age` ключ.
+### Секреты
+
+```bash
+make secrets-keygen   # Сгенерировать age ключ
+make secrets-encrypt  # Зашифровать .secret.env
+make secrets-decrypt  # Расшифровать .secret.enc.env
+```
+
+---
 
 ## Лицензия
 

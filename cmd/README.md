@@ -6,13 +6,22 @@
 
 ```
 cmd/
-└── migrate/    # CLI для миграций БД
+├── api/main.go   # HTTP API сервер (Mini App backend)
+└── bot/main.go   # Telegram бот
 ```
 
 ## Запуск
 
 ```bash
-go run cmd/migrate/main.go up   # миграции
+# API сервер (порт 8080)
+go run cmd/api/main.go
+
+# Telegram бот
+go run cmd/bot/main.go
 ```
 
-> Точка входа бота (`cmd/bot/main.go`) ещё не создана.
+## Примечания
+
+- API сервер автоматически применяет миграции при старте
+- Бот и API — независимые процессы, можно запускать отдельно
+- Для Mini App достаточно только API сервера

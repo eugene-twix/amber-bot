@@ -1,73 +1,67 @@
-# React + TypeScript + Vite
+# frontend/
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Telegram Mini App для Amber Bot.
 
-Currently, two official plugins are available:
+## Технологии
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19** + TypeScript
+- **Vite** — сборка
+- **TanStack Query** — кеширование данных
+- **shadcn/ui** — UI компоненты
+- **Tailwind CSS** — стили
 
-## React Compiler
+## Структура
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+frontend/
+├── src/
+│   ├── components/     # UI компоненты
+│   │   ├── ui/         # shadcn/ui компоненты
+│   │   └── TabBar.tsx  # Нижняя навигация
+│   ├── hooks/          # React hooks (useApi)
+│   ├── pages/          # Страницы приложения
+│   ├── services/       # API клиент
+│   ├── lib/            # Утилиты
+│   ├── App.tsx         # Роутинг
+│   └── main.tsx        # Entry point
+├── index.html          # HTML + Telegram Web App SDK
+└── vite.config.ts      # Конфигурация Vite
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Страницы
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Страница | Путь | Описание |
+|----------|------|----------|
+| TeamsPage | `/` | Список команд с поиском |
+| TeamDetailPage | `/teams/:id` | Детали команды + участники + результаты |
+| RatingPage | `/rating` | Рейтинг команд с сортировкой |
+| TournamentsPage | `/tournaments` | Список турниров |
+| TournamentDetailPage | `/tournaments/:id` | Детали турнира + результаты |
+| ManagePage | `/manage` | Управление (только organizer/admin) |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Запуск
+
+```bash
+cd frontend
+
+# Установка зависимостей
+npm install
+
+# Dev сервер (порт 5173)
+npm run dev
+
+# Сборка
+npm run build
 ```
+
+## API
+
+Фронтенд обращается к API через `/api/v1/`:
+- Публичные endpoints: `/api/v1/public/*`
+- Приватные endpoints: `/api/v1/private/*` (organizer/admin)
+
+Авторизация через Telegram Web App `initData`.
+
+## Dev режим
+
+При `DEV_MODE=true` на бэкенде авторизация отключена, используется `DEV_USER_ID`.

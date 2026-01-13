@@ -16,11 +16,22 @@
 ## Использование
 
 ```go
-db := bun.NewDB(sqldb, pgdialect.New())
+db := bunrepo.NewDB(databaseURL, debug)
+defer db.Close()
+
 userRepo := bunrepo.NewUserRepo(db)
+teamRepo := bunrepo.NewTeamRepo(db)
+// ...
 ```
+
+## Soft Delete
+
+Все методы Get/List фильтруют `WHERE deleted_at IS NULL`:
+- Удалённые записи не возвращаются в запросах
+- Delete() ставит `deleted_at = NOW()` вместо физического удаления
 
 ## Зависимости
 
 - `github.com/uptrace/bun` — ORM
 - `github.com/uptrace/bun/dialect/pgdialect` — PostgreSQL диалект
+- `github.com/uptrace/bun/driver/pgdriver` — драйвер
