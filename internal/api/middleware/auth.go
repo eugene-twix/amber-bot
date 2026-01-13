@@ -27,7 +27,7 @@ const (
 	WriteTTL = 10 * time.Minute
 
 	// Context keys
-	ContextKeyUser    = "user"
+	ContextKeyUser     = "user"
 	ContextKeyInitData = "initData"
 )
 
@@ -42,11 +42,11 @@ var (
 
 // InitData represents parsed Telegram Web App init data
 type InitData struct {
-	QueryID      string
-	User         *InitDataUser
-	AuthDate     time.Time
-	Hash         string
-	Raw          string
+	QueryID  string
+	User     *InitDataUser
+	AuthDate time.Time
+	Hash     string
+	Raw      string
 }
 
 type InitDataUser struct {
@@ -144,7 +144,7 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 
 		// Check replay attack for mutations
 		if c.Request.Method != http.MethodGet && initData.QueryID != "" {
-			if err := m.checkReplay(c.Request.Context(), initData.QueryID); err != nil {
+			if err := m.checkReplay(c.Request.Context(), initData.QueryID, c.Request.Method, c.Request.URL.Path); err != nil {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "replay_detected"})
 				return
 			}
@@ -357,9 +357,10 @@ func (m *AuthMiddleware) validateHash(raw, hash string) bool {
 	return hmac.Equal([]byte(computed), []byte(hash))
 }
 
-// checkReplay checks if query_id was already used (replay attack)
-func (m *AuthMiddleware) checkReplay(ctx context.Context, queryID string) error {
-	key := fmt.Sprintf("replay:%s", queryID)
+// checkReplay checks if exact request was already made (replay attack)
+// Uses query_id + method + path to allow multiple different requests in same session
+func (m *AuthMiddleware) checkReplay(ctx context.Context, queryID, method, path string) error {
+	key := fmt.Sprintf("replay:%s:%s:%s", queryID, method, path)
 
 	// Try to set with NX (only if not exists)
 	set, err := m.cache.SetNX(ctx, key, "1", WriteTTL)
